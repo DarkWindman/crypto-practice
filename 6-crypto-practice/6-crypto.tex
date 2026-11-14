@@ -1,0 +1,547 @@
+\documentclass{../zkdl-presentation-template}
+
+\title[Криптографія]{\textbf{Практичне №6.Асиметрична криптографія}}
+
+\date{29.10.2026}
+
+% --- Додатково для цієї презентації ---
+\usetikzlibrary{calc,arrows.meta,shapes.misc}
+
+\newcommand{\legendre}[2]{\left(\frac{#1}{#2}\right)}
+\newcommand{\QR}{\mathcal{Q}}
+\newcommand{\QNR}{\overline{\mathcal{Q}}}
+\newcommand{\PSQ}{\widetilde{\mathcal{Q}}}
+\newcommand{\inR}{\in_R}
+
+% кольори для схем протоколів
+\colorlet{alicecol}{oc-indigo-8}
+\colorlet{bobcol}{oc-teal-8}
+\colorlet{evecol}{oc-red-8}
+
+% палітра "ghoul edition"
+\definecolor{ghoulred}{HTML}{C0001E}
+\definecolor{ghoulblood}{HTML}{6E0010}
+\definecolor{ghoulbg}{HTML}{0A0A0C}
+\definecolor{ghoulgray}{HTML}{8A8A90}
+
+% слайд "ghoul edition": весь слайд малюється як фон у \ghoulbackground
+% (визначається безпосередньо перед відповідним слайдом), \begin{frame}[plain, ghoul]
+\usetikzlibrary{fadings}
+\newcommand{\ghoulbackground}{}
+% спільна основа ghoul-слайдів: фон, затемнення, заголовок (#1)
+\newcommand{\ghoulbase}[1]{%
+    \path[fill overzoom image=6-crypto-practice/background.png] (0,0) rectangle (\paperwidth,\paperheight);
+    \fill[black, opacity=0.35] (0,0) rectangle (\paperwidth,\paperheight);
+    \fill[black, opacity=0.75, path fading=north] (0,0) rectangle (\paperwidth,0.55\paperheight);
+    \fill[black, opacity=0.6, path fading=south] (0,0.82\paperheight) rectangle (\paperwidth,\paperheight);
+    \node[anchor=north west, font=\Large\bfseries, text=ghoulred!60!black] at (0.57,9.17) {#1};
+    \node[anchor=north west, font=\Large\bfseries, text=white] (gtitle) at (0.50,9.22) {#1};
+    \draw[ghoulred, line width=1.4pt] (0.50,8.5) -- (gtitle.east |- 0,8.5);
+}
+\tikzset{
+    gtxt/.style={text=white, font=\small},
+    glass/.style={fill=black, fill opacity=0.6, text opacity=1, rounded corners=2pt, inner sep=3pt},
+    gmsg/.style={-{Stealth[length=2.8mm]}, line width=1.1pt, ghoulred}
+}
+% картка персонажа: #1 -- центр, #2 -- ширина, #3 -- файл
+\newcommand{\ghoulcard}[3]{%
+  \node[inner sep=0pt] (card) at #1 {\includegraphics[width=#2]{#3}};
+  \draw[ghoulred, line width=2.2pt, opacity=0.35] (card.south west) rectangle (card.north east);
+  \draw[ghoulred, line width=0.8pt] (card.south west) rectangle (card.north east);
+}
+\makeatletter
+\define@key{beamerframe}{ghoul}[true]{\setbeamertemplate{background}{\ghoulbackground}}
+\makeatother
+
+\begin{document}
+    \frame{
+        \titlepage
+    }
+
+    \begin{frame}{Plan}
+        \tableofcontents
+    \end{frame}
+
+    \section{Квадратичні лишки} % Note all sections and subsections are automatically placed in your table of contents
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Символ Лежандра. Повторення}
+    \small
+    \begin{block}{Означення}
+        Нехай $p>2$ -- просте, $a\in\mathbb{Z}$. \textbf{Символ Лежандра}:
+        \vspace{-1mm}
+        \begin{equation*}
+            \legendre{a}{p}=
+            \begin{cases}
+                \ \ 0, & p\mid a,\\
+                \ \ 1, & a\in\mathcal{Q}_p\ \ (\exists x:\ x^2\equiv a \bmod p),\\
+                -1, & a\in\overline{\mathcal{Q}}_p.
+            \end{cases}
+        \end{equation*}
+    \end{block}
+    \vspace{-2mm}
+    \begin{exampleblock}{Закони}
+        \begin{enumerate}[itemsep=2pt]
+            \item $a\equiv b \pmod p\ \Rightarrow\ \legendre{a}{p}=\legendre{b}{p}$;
+            \item $\legendre{ab}{p}=\legendre{a}{p}\legendre{b}{p}$, \ зокрема $\legendre{a^2}{p}=1$ при $p\nmid a$;
+            \item критерій Ойлера: $\legendre{a}{p}\equiv a^{\frac{p-1}{2}} \pmod p$;
+            \item $\legendre{1}{p}=1,\quad \legendre{-1}{p}=(-1)^{\frac{p-1}{2}},\quad \legendre{2}{p}=(-1)^{\frac{p^2-1}{8}}$;
+            \item закон взаємності: для різних непарних простих $p,q$ \
+            $\legendre{p}{q}\legendre{q}{p}=(-1)^{\frac{p-1}{2}\cdot\frac{q-1}{2}}$.
+        \end{enumerate}
+    \end{exampleblock}
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Символ Якобі. Псевдоквадрати}
+    \footnotesize
+    \begin{block}{Означення}
+        Нехай $n$ -- непарне, $n=p_1^{\alpha_1}\cdots p_k^{\alpha_k}$. \textbf{Символ Якобі}: \
+        $\legendre{a}{n}=\legendre{a}{p_1}^{\alpha_1}\cdots\legendre{a}{p_k}^{\alpha_k}$.
+    \end{block}
+    \vspace{-2mm}
+    \begin{exampleblock}{Закони \normalfont(для непарних $m,n$)}
+        \begin{columns}[T]
+            \begin{column}{0.47\textwidth}
+                \begin{enumerate}[itemsep=1pt]
+                    \item $a\equiv b \pmod n\Rightarrow\legendre{a}{n}=\legendre{b}{n}$;
+                    \item $\legendre{ab}{n}=\legendre{a}{n}\legendre{b}{n}$;
+                    \item $\legendre{a}{mn}=\legendre{a}{m}\legendre{a}{n}$;
+                \end{enumerate}
+            \end{column}
+            \begin{column}{0.5\textwidth}
+                \begin{enumerate}[start=4,itemsep=1pt]
+                    \item $\legendre{-1}{n}=(-1)^{\frac{n-1}{2}}$, \ $\legendre{2}{n}=(-1)^{\frac{n^2-1}{8}}$;
+                    \item $\gcd(m,n)=1$: \ $\legendre{m}{n}\legendre{n}{m}=(-1)^{\frac{m-1}{2}\cdot\frac{n-1}{2}}$.
+                \end{enumerate}
+            \end{column}
+        \end{columns}
+        Обчислюється за $O(\log^2 n)$ \textbf{без розкладу} $n$ на множники.
+    \end{exampleblock}
+    \vspace{-2mm}
+    \begin{alertblock}{Псевдоквадрати}
+        $\legendre{a}{n}=-1\Rightarrow a\notin\QR_n$, \ але \ $\legendre{a}{n}=1\not\Rightarrow a\in\QR_n$.
+
+        \textbf{Означення.} $a\in\mathbb{Z}_n^*$ -- \textbf{псевдоквадрат} за модулем $n$, якщо $\legendre{a}{n}=1$, але $a\notin\QR_n$. Для $n=pq$:
+        \vspace{-1mm}
+        \begin{equation*}
+            \PSQ_n=\left\{a\in\mathbb{Z}_n^*:\ \legendre{a}{p}=\legendre{a}{q}=-1\right\},\qquad |\QR_n|=|\PSQ_n|=\tfrac{\varphi(n)}{4}.
+        \end{equation*}
+        \vspace{-4mm}
+    \end{alertblock}
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Задачі}
+    \begin{block}{}
+        \textbf{1.} Oбчисліть
+        $\legendre{74}{437}$ та $\legendre{67}{437}$.
+        Що можна сказати про те, чи є ці числа квадратичними лишками за модулем $437=19\cdot 23$?
+    \end{block}
+    \begin{figure}
+        \centering
+        \includegraphics[width=1\linewidth]{2-crypto-sym/images/cells.png}
+    \end{figure}
+\end{frame}
+%------------------------------------------------
+\section{Протокол Діффі-Геллмана}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Протокол узгодження ключів}
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\small},
+        msg/.style={-{Stealth[length=2.5mm]}, line width=0.9pt},
+        party/.style={draw, rounded corners=3pt, line width=0.8pt, minimum width=2.4cm, minimum height=0.65cm, font=\normalsize\bfseries, text=white}
+      ]
+        \node[draw=oc-gray-6, fill=oc-gray-1, rounded corners=3pt, text width=9.6cm, align=center, inner sep=4pt] (pp) at (4.2,1.05)
+            {\textbf{Публічні параметри:} просте $p$, $g\in\mathbb{Z}_p^*$ великого порядку $q$ \\ Покажіть, що обчислений секрет співпадає};
+
+        \node[party, fill=alicecol, draw=alicecol] (A) at (0,0) {Аліса};
+        \node[party, fill=bobcol, draw=bobcol] (B) at (8.4,0) {Боб};
+
+        \node[text=alicecol] (a1) at (0,-0.85) {$a\inR\mathbb{Z}_q$};
+        \node[text=alicecol] (a2) at (0,-1.55) {$A:=g^{a}\bmod p$};
+        \node[text=bobcol]   (b1) at (8.4,-0.85) {$b\inR\mathbb{Z}_q$};
+        \node[text=bobcol]   (b2) at (8.4,-2.35) {$B:=g^{b}\bmod p$};
+
+        \draw[msg, alicecol] (1.45,-1.55) -- node[above]{$A$} (6.95,-1.55);
+        \draw[msg, bobcol]   (6.95,-2.35) -- node[above]{$B$} (1.45,-2.35);
+
+        \node[text=alicecol] (ka) at (0,-3.25) {$K:=B^{a}\bmod p$};
+        \node[text=bobcol]   (kb) at (8.4,-3.25) {$K:=A^{b}\bmod p$};
+
+        \node[draw=oc-yellow-8, fill=oc-yellow-1, rounded corners=3pt, inner sep=4pt] (k) at (4.2,-3.25) {$K=g^{ab}\bmod p$};
+        \draw[oc-yellow-8, line width=0.8pt, -{Stealth}] (ka) -- (k);
+        \draw[oc-yellow-8, line width=0.8pt, -{Stealth}] (kb) -- (k);
+
+        \node[text=oc-gray-7, font=\footnotesize, align=center] at (4.2,-4.15)
+            {По каналу можна відслідковувати усе, що передається у відкриту: $p,\ g,\ A,\ B$};
+    \end{tikzpicture}
+\end{frame}
+%------------------------------------------------
+% --- Альтернативна версія попереднього слайду ("ghoul edition"). Залиште одну з двох. ---
+\renewcommand{\ghoulbackground}{%
+  \begin{tikzpicture}[
+      x=1cm, y=1cm,
+      txt/.style={text=white, font=\small},
+      glass/.style={fill=black, fill opacity=0.6, text opacity=1, rounded corners=2pt, inner sep=3pt},
+      msg/.style={-{Stealth[length=2.8mm]}, line width=1.1pt, ghoulred}
+    ]
+    \useasboundingbox (0,0) rectangle (\paperwidth,\paperheight);
+    \ghoulbase{Протокол узгодження ключів}
+    \node[anchor=north west, txt, font=\footnotesize, glass] at (0.50,8.3)
+      {\textcolor{ghoulred}{\textbf{Публічно:}} просте $p$, \ $g\in\mathbb{Z}_p^*$ порядку $q$};
+
+    % Аліса та Боб
+    \ghoulcard{(2.0,5.75)}{3.0cm}{6-crypto-practice/Alice.png}
+    \coordinate (Acard) at (card.east);
+    \ghoulcard{(10.8,5.75)}{3.0cm}{6-crypto-practice/Bob.png}
+    \coordinate (Bcard) at (card.west);
+
+    % повідомлення
+    \draw[msg] (3.65,6.55) -- node[above=1pt, txt, glass]{$A:=g^{a}\bmod p$} (9.15,6.55);
+    \draw[msg] (9.15,5.15) -- node[above=1pt, txt, glass]{$B:=g^{b}\bmod p$} (3.65,5.15);
+
+    % обчислення сторін
+    \node[txt, glass] at (2.0,3.95) {$a\inR\mathbb{Z}_q$};
+    \node[txt, glass] at (10.8,3.95) {$b\inR\mathbb{Z}_q$};
+    \node[txt, glass] (ka) at (2.0,3.3) {$K:=B^{a}\bmod p$};
+    \node[txt, glass] (kb) at (10.8,3.3) {$K:=A^{b}\bmod p$};
+    \node[draw=ghoulred, fill=ghoulblood, fill opacity=0.9, text opacity=1, line width=1pt, inner sep=5pt,
+          text=white, font=\normalsize\bfseries] (k) at (6.4,3.3) {$K=g^{ab}\bmod p$};
+    \draw[ghoulred, line width=0.9pt, -{Stealth}] (ka) -- (k);
+    \draw[ghoulred, line width=0.9pt, -{Stealth}] (kb) -- (k);
+
+    % зловмисник слухає канал
+    \ghoulcard{(6.4,1.3)}{2.2cm}{6-crypto-practice/Adversar.png}
+    \node[txt, font=\footnotesize, glass, anchor=east] at (5.15,1.55) {бачить: \ $p,\ g,\ A,\ B$};
+    \node[txt, font=\footnotesize, glass, anchor=west] at (7.65,1.55) {не знає: \ $a,\ b$};
+    \node[txt, font=\footnotesize, glass, anchor=east, text=ghoulred!40!white] at (5.15,0.95) {мета: \ $g^{ab}$};
+
+    % пасхалка
+    \node[anchor=south east, font=\tiny\ttfamily, text=ghoulgray] at (12.6,0.15) {1000 - 7 = 993 ...};
+  \end{tikzpicture}%
+}
+\begin{frame}[plain, ghoul]
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Безпека DH}
+    \small
+    Нехай $G=\langle g\rangle$ -- циклічна група порядку $q$, $a,b,c\inR\mathbb{Z}_q$.
+    \begin{block}{Задача Діффі-Геллмана (злам схеми DH)}
+        Знаючи $(G,\,g,\,g^{a},\,g^{b})$ -- тобто все, що бачить Єва, -- знайти спільний ключ $g^{ab}$.
+    \end{block}
+    \vspace{-2mm}
+    \begin{block}{CDH (Computational Diffie-Hellman)}
+        Для будь-якого PPT-алгоритму $\mathcal{A}$: \
+        $\Pr\left[\mathcal{A}(g,g^{a},g^{b})=g^{ab}\right]\le\mathsf{negl}(\lambda)$.
+    \end{block}
+    \vspace{-2mm}
+    \begin{block}{DDH (Decisional Diffie-Hellman)}
+        Набори $(g,g^{a},g^{b},g^{ab})$ та $(g,g^{a},g^{b},g^{c})$ обчислювально нерозрізненні:
+        \vspace{-1mm}
+        \begin{equation*}
+            \left|\Pr\left[\mathcal{A}(g,g^{a},g^{b},g^{ab})=1\right]-\Pr\left[\mathcal{A}(g,g^{a},g^{b},g^{c})=1\right]\right|\le\mathsf{negl}(\lambda).
+        \end{equation*}
+    \end{block}
+    \vspace{-2mm}
+    \begin{alertblock}{}
+        \footnotesize
+        Розв'язуємо DLP $\Rightarrow$ розв'язуємо CDH $\Rightarrow$ розв'язуємо DDH. Отже, припущення DDH -- найсильніше з трьох.
+        У всій групі $\mathbb{Z}_p^*$ DDH \textbf{не виконується}: $\legendre{g^{x}}{p}=(-1)^{x}$ видає парність $x$.
+    \end{alertblock}
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Атаки на DH: людина посередині (MITM)}
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\small},
+        msg/.style={-{Stealth[length=2.5mm]}, line width=0.9pt},
+        party/.style={draw, rounded corners=3pt, line width=0.8pt, minimum width=2.2cm, minimum height=0.6cm, font=\normalsize\bfseries, text=white}
+      ]
+        \node[party, fill=alicecol, draw=alicecol] (A) at (0,0) {Аліса};
+        \node[party, fill=evecol, draw=evecol] (E) at (4.6,0) {Єва};
+        \node[party, fill=bobcol, draw=bobcol] (B) at (9.2,0) {Боб};
+
+        \node[text=alicecol] at (0,-0.8) {$a\inR\mathbb{Z}_q$};
+        \node[text=evecol]   at (4.6,-0.8) {$e,\,e'\inR\mathbb{Z}_q$};
+        \node[text=bobcol]   at (9.2,-0.8) {$b\inR\mathbb{Z}_q$};
+
+        \draw[msg, alicecol] (0.4,-1.45) -- node[above]{$g^{a}$} (4.2,-1.45);
+        \draw[msg, evecol]   (5.0,-1.45) -- node[above]{$g^{e}$} (8.8,-1.45);
+        \draw[msg, bobcol]   (8.8,-2.25) -- node[above]{$g^{b}$} (5.0,-2.25);
+        \draw[msg, evecol]   (4.2,-2.25) -- node[above]{$g^{e'}$} (0.4,-2.25);
+
+        \draw[oc-gray-5, dashed] (4.6,-1.1) -- (4.6,-2.6);
+        \draw[oc-gray-5, dashed] (9.2,-1.1) -- (9.2,-2.6);
+        \draw[oc-gray-5, dashed] (0,-1.1) -- (0,-2.6);
+
+        \node[text=alicecol] at (0,-3.0) {$K_A=(g^{e'})^{a}$};
+        \node[text=bobcol]   at (9.2,-3.0) {$K_B=(g^{e})^{b}$};
+        \node[text=evecol, align=center] at (4.6,-3.15) {$K_A=(g^{a})^{e'}$\\ $K_B=(g^{b})^{e}$};
+    \end{tikzpicture}
+
+    \vspace{1mm}
+    \begin{alertblock}{}
+        \footnotesize
+        Аліса і Боб упевнені, що мають спільний ключ, але насправді кожен узгодив ключ з Євою: вона розшифровує і перешифровує весь трафік.
+        Причина -- \textbf{відсутність автентифікації}: CDH тут ні до чого, Єва нічого не логарифмує.
+        Захист: підписи на повідомленнях протоколу / сертифікати (STS, TLS), статичні ключі ідентичності (X3DH).
+    \end{alertblock}
+\end{frame}
+%------------------------------------------------
+% --- Альтернативна версія попереднього слайду ("ghoul edition"). Залиште одну з двох. ---
+\renewcommand{\ghoulbackground}{%
+  \begin{tikzpicture}[x=1cm, y=1cm, txt/.style={gtxt}, msg/.style={gmsg}]
+    \useasboundingbox (0,0) rectangle (\paperwidth,\paperheight);
+    \ghoulbase{Атаки на DH: людина посередині}
+    \node[anchor=north west, txt, font=\footnotesize, glass] at (0.50,8.3)
+      {Зловмисник \textcolor{ghoulred}{\textbf{контролює канал}}: перехоплює та підміняє повідомлення};
+
+    % учасники
+    \ghoulcard{(1.85,5.55)}{2.6cm}{6-crypto-practice/Alice.png}
+    \ghoulcard{(6.4,5.55)}{2.6cm}{6-crypto-practice/Adversar.png}
+    \ghoulcard{(10.95,5.55)}{2.6cm}{6-crypto-practice/Bob.png}
+
+    % повідомлення
+    \draw[msg] (3.3,6.15) -- node[above=1pt, txt, glass]{$g^{a}$} (4.95,6.15);
+    \draw[msg] (7.85,6.15) -- node[above=1pt, txt, glass]{$g^{e}$} (9.5,6.15);
+    \draw[msg] (9.5,4.95) -- node[above=1pt, txt, glass]{$g^{b}$} (7.85,4.95);
+    \draw[msg] (4.95,4.95) -- node[above=1pt, txt, glass]{$g^{e'}$} (3.3,4.95);
+
+    % вибір секретів
+    \node[txt, glass] at (1.85,3.85) {$a\inR\mathbb{Z}_q$};
+    \node[txt, glass] at (6.4,3.85) {$e,\,e'\inR\mathbb{Z}_q$};
+    \node[txt, glass] at (10.95,3.85) {$b\inR\mathbb{Z}_q$};
+
+    % ключі
+    \node[txt, glass] at (1.85,3.2) {$K_A:=(g^{e'})^{a}$};
+    \node[txt, glass] at (10.95,3.2) {$K_B:=(g^{e})^{b}$};
+    \node[draw=ghoulred, fill=ghoulblood, fill opacity=0.9, text opacity=1, line width=1pt, inner sep=4pt,
+          text=white, font=\small, align=center] at (6.4,3.0)
+          {$K_A=(g^{a})^{e'}$\\[1pt] $K_B=(g^{b})^{e}$};
+
+    % пояснення
+    \node[txt, font=\footnotesize, glass, text width=11.4cm, align=left, inner sep=5pt] at (6.4,1.05)
+      {Аліса і Боб упевнені, що мають спільний ключ, але кожен узгодив ключ зі Зловмисником:
+       він розшифровує і перешифровує весь трафік. Причина -- \textcolor{ghoulred!80!white}{\textbf{відсутність автентифікації}}:
+       CDH тут ні до чого, нічого не логарифмується.\\
+       \textcolor{ghoulred!80!white}{\textbf{Захист:}} підписи на повідомленнях протоколу / сертифікати (STS, TLS), ключі ідентичності (X3DH).};
+  \end{tikzpicture}%
+}
+\begin{frame}[plain, ghoul]
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{X3DH (Extended Triple Diffie-Hellman, Signal)}
+    \footnotesize
+    \begin{columns}[T]
+        \begin{column}{0.46\textwidth}
+            Асинхронне узгодження: Боб офлайн, його ключі -- на сервері.
+            \begin{block}{Ключі}
+                $IK$ -- ключ ідентичності (довгостроковий);\\
+                $SPK_B$ -- prekey Боба + $\mathsf{Sig}_{IK_B}(SPK_B)$;\\
+                $OPK_B$ -- одноразовий prekey (опційно);\\
+                $EK_A$ -- ефемерний ключ Аліси.
+            \end{block}
+        \end{column}
+        \begin{column}{0.52\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                key/.style={draw, rounded corners=2pt, line width=0.8pt, minimum width=1.25cm, minimum height=0.5cm, font=\footnotesize\bfseries, fill=oc-gray-0},
+                dh/.style={line width=0.9pt},
+                lab/.style={font=\scriptsize, fill=oc-gray-0, inner sep=1pt}
+              ]
+                \node[font=\small\bfseries, text=alicecol] at (0,0.6) {Аліса};
+                \node[font=\small\bfseries, text=bobcol] at (4.0,0.6) {Боб};
+                \node[key, draw=alicecol, text=alicecol] (IKA) at (0,0) {$IK_A$};
+                \node[key, draw=alicecol, text=alicecol] (EKA) at (0,-2.0) {$EK_A$};
+                \node[key, draw=bobcol, text=bobcol] (IKB) at (4.0,0) {$IK_B$};
+                \node[key, draw=bobcol, text=bobcol] (SPKB) at (4.0,-1.2) {$SPK_B$};
+                \node[key, draw=bobcol, text=bobcol, dashed] (OPKB) at (4.0,-2.4) {$OPK_B$};
+
+                \draw[dh, oc-indigo-6] (IKA.east) -- node[lab, pos=0.2]{$DH_1$} (SPKB.west);
+                \draw[dh, oc-indigo-6] (EKA.east) -- node[lab, pos=0.8]{$DH_2$} (IKB.west);
+                \draw[dh, oc-orange-7] (EKA.east) -- node[lab, pos=0.75]{$DH_3$} (SPKB.west);
+                \draw[dh, oc-orange-7, dashed] (EKA.east) -- node[lab, pos=0.55]{$DH_4$} (OPKB.west);
+            \end{tikzpicture}
+        \end{column}
+    \end{columns}
+
+    \vspace{-1mm}
+    \begin{exampleblock}{}
+        $SK=\mathsf{KDF}\left(DH_1\,\|\,DH_2\,\|\,DH_3\,\|\,DH_4\right)$
+        \begin{itemize}[itemsep=1pt]
+            \item \textcolor{oc-indigo-7}{$DH_1, DH_2$} -- взаємна автентифікація (захист від MITM);
+            \item \textcolor{oc-orange-8}{$DH_3, DH_4$} -- пряма секретність (forward secrecy);
+            \item Аліса надсилає $IK_A$, $EK_A$, ідентифікатори використаних prekey та перше повідомлення під $SK$ (AEAD).
+        \end{itemize}
+    \end{exampleblock}
+    {\scriptsize Сьогодні Signal використовує PQXDH: до $DH_1,\ldots,DH_4$ додається спільний секрет постквантового KEM (ML-KEM).}
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Задачі}
+    \begin{block}{}
+        \textbf{2.} Нехай $p$ -- просте, $g\in\mathbb{Z}_p^*$ -- генератор. Покажіть, що за значенням $y=g^{x}\bmod p$ Єва завжди може сказати, парним чи непарним є невідоме їй $x$.
+
+        \textbf{3.} Переформулюйте схему Діффі-Геллмана в термінах групи $(\mathbb{Z}_n,+)$. Чи буде стійкою така схема?
+    \end{block}
+    \begin{figure}
+        \centering
+        \includegraphics[width=1\linewidth]{2-crypto-sym/images/cells.png}
+    \end{figure}
+\end{frame}
+%------------------------------------------------
+\section{Протокол шифрування RSA}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Визначення параметрів та схема}
+    \small
+    \begin{block}{Генерування ключів}
+        Обрати великі прості $p\neq q$, обчислити $n=pq$, $\varphi(n)=(p-1)(q-1)$.
+        Обрати $e$: $\gcd(e,\varphi(n))=1$, обчислити $d=e^{-1}\bmod\varphi(n)$.\\
+        Відкритий ключ -- $(n,e)$, секретний ключ -- $d$ (а також $p,q$).
+    \end{block}
+    \vspace{-1mm}
+    \centering
+    \begin{tikzpicture}[
+        every node/.style={font=\small},
+        msg/.style={-{Stealth[length=2.5mm]}, line width=0.9pt},
+        party/.style={draw, rounded corners=3pt, line width=0.8pt, minimum width=2.4cm, minimum height=0.6cm, font=\normalsize\bfseries, text=white}
+      ]
+        \node[party, fill=bobcol, draw=bobcol] (B) at (0,0) {Боб};
+        \node[party, fill=alicecol, draw=alicecol] (A) at (8.4,0) {Аліса};
+        \node[text=alicecol] at (8.4,-0.8) {$(n,e),\ d$};
+        \draw[msg, alicecol] (7.5,-0.8) -- node[above]{$pk=(n,e)$} (1.2,-0.8);
+        \node[text=bobcol] at (0,-0.8) {$m\in\mathbb{Z}_n$};
+        \node[text=bobcol] at (0,-1.6) {$c:=m^{e}\bmod n$};
+        \draw[msg, bobcol] (1.3,-1.6) -- node[above]{$c$} (7.1,-1.6);
+        \node[text=alicecol] at (8.4,-1.6) {$m:=c^{d}\bmod n$};
+    \end{tikzpicture}
+    \vspace{-1mm}
+    \begin{alertblock}{}
+        \raggedright
+        Коректність при $\gcd(m,n)=1$ (загальний випадок -- задача 6): \\
+        $ed=1+k\varphi(n)\ \Rightarrow\ c^{d}=m^{ed}=m\cdot\left(m^{\varphi(n)}\right)^{k}\equiv m \pmod n$.\\
+        Підпис: $s=m^{d}\bmod n$, перевірка: $s^{e}\overset{?}{\equiv}m\pmod n$.
+    \end{alertblock}
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Задачі}
+    \begin{block}{}
+        \textbf{4.} Переформулюйте криптосистему RSA для випадку простого модуля.
+        \begin{enumerate}
+            \item[a)] покажіть, що така система не є стійкою;
+            \item[b)] покажіть, що якщо обрати $p=q$, то опис криптосистеми стане некоректним, а система стане нестійкою.
+        \end{enumerate}
+        \textbf{5.} Покажіть, як за відомим $n$ та значенням функції Ойлера $\varphi(n)$ обчислити значення $p$ та $q$.
+    \end{block}
+    \begin{figure}
+        \centering
+        \includegraphics[width=1\linewidth]{2-crypto-sym/images/cells_small.png}
+    \end{figure}
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Задачі}
+    \begin{block}{}
+        \textbf{6.} Доведіть, що процедура розшифрування RSA коректно розшифровує відкритий текст $m$ навіть якщо $\gcd(m,n)>1$. Оцініть ймовірність того, що випадково обране повідомлення буде невзаємнопростим із модулем $n$.
+
+        \textbf{7.} Яка складність перевіряння цифрового підпису в схемі RSA для значення $e=2^{t}+1$? Наведіть числові відповіді для $e=3,5,17,65537$. В якості базової операції використовується множення двох чисел за модулем.
+    \end{block}
+    \begin{figure}
+        \centering
+        \includegraphics[width=1\linewidth]{2-crypto-sym/images/cells_small.png}
+    \end{figure}
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Задачі}
+    \begin{block}{}
+        \textbf{8.} Покажіть, що при $e=\frac{\varphi(n)}{2}+1$ функція RSA перетворюється на тотожну.
+
+        \textbf{9.} Доведіть, що функція RSA зберігає символ Якобі: $\legendre{m^{e}}{n}=\legendre{m}{n}$.
+
+        \textbf{10.} Нехай $c=m^{e}\bmod n$ -- шифротекст RSA. Покажіть, що для довільного $u\in\mathbb{Z}_n$ число $c':=c\cdot u^{e}\bmod n$ є коректним шифротекстом під повідомленням $m':=m\cdot u\bmod n$.
+    \end{block}
+    \begin{figure}
+        \centering
+        \includegraphics[width=1\linewidth]{2-crypto-sym/images/cells_small.png}
+    \end{figure}
+\end{frame}
+%------------------------------------------------
+\section{Схема Горнера}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Схема}
+    \small
+    \textbf{Вхід:} $a,m\in\mathbb{N}\ (a<m)$, \ $n$, \ $|n|=k$ біт. \quad \textbf{Обчислюємо:} $a^{n}\bmod m$.
+    \begin{block}{Ідея}
+        \vspace{-4mm}
+        \begin{gather*}
+            n=(n_{k-1}n_{k-2}\ldots n_1n_0)_2=\textstyle\sum_{i=0}^{k-1}n_i2^{i}\\
+            a^{n}=a^{\sum_{i=0}^{k-1}n_i2^{i}}=\Big(\ldots\big(\big(a^{n_{k-1}}\big)^{2}\cdot a^{n_{k-2}}\big)^{2}\cdot a^{n_{k-3}}\ldots\Big)^{2}\cdot a^{n_0}
+        \end{gather*}
+        \vspace{-5mm}
+
+        {\footnotesize Після кожного піднесення до квадрату та множення беремо число за $\bmod\ m$.}
+    \end{block}
+    \vspace{-2mm}
+    \begin{columns}[T]
+        \begin{column}{0.52\textwidth}
+            \begin{exampleblock}{Ітеративно}
+                \begin{enumerate}
+                    \item $b:=1$
+                    \item \textbf{for} $i=k-1$ \textbf{downto} $0$:\\
+                          \quad $b:=b^{2}\bmod m$\\
+                          \quad \textbf{if} $n_i=1$: \ $b:=b\cdot a\bmod m$
+                    \item \textbf{return} $b$
+                \end{enumerate}
+            \end{exampleblock}
+        \end{column}
+        \begin{column}{0.44\textwidth}
+            \begin{alertblock}{Складність}
+                $k$ піднесень до квадрату $+$ $\mathrm{wt}(n)\le k$ множень: \ $\le 2k$ модулярних множень замість $n-1$.
+            \end{alertblock}
+        \end{column}
+    \end{columns}
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Приклад: $23^{143}\bmod 41$}
+    \small
+    $143=$
+    \includegraphics[width=1\linewidth]{2-crypto-sym/images/cells.png}
+\end{frame}
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Задачі}
+    \begin{block}{}
+        \textbf{11.} Побудуйте спільний секрет для абонентів A та B у схемі Діффі-Геллмана, якщо $p=11,\ g=2,\ x_A=5,\ x_B=7$.
+    \end{block}
+    % Відповіді: 11) y_A = 2^5 = 10, y_B = 2^7 = 7 (mod 11), K = 2^35 = 10 (mod 11).
+    \begin{figure}
+        \centering
+        \includegraphics[width=1\linewidth]{2-crypto-sym/images/cells.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Задачі}
+    \begin{block}{}
+        \textbf{12.} Розшифруйте повідомлення $C=815$, якщо відомо, що використовується схема RSA, $p=37,\ q=43$, а відкритий ключ $e=17$.
+    % Відповідь: n = 1591, phi(n) = 1512, d = 17^{-1} mod 1512 = 89 = (1011001)_2, m = 815^89 mod 1591 = 1000.
+    \end{block}
+        \begin{figure}
+        \centering
+        \includegraphics[width=1\linewidth]{2-crypto-sym/images/cells.png}
+    \end{figure}
+\end{frame}
+
+    \input{../templates/last-slide.tex}
+\end{document}

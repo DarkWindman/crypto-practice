@@ -1,0 +1,339 @@
+\documentclass{beamer}
+\usetheme{Madrid}
+\usepackage[utf8]{inputenc}
+\usepackage[ukrainian]{babel}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\setbeamertemplate{footline}{
+  \hfill%
+  \usebeamercolor[fg]{page number in head/foot}%
+  \usebeamerfont{page number in head/foot}%
+  \insertframenumber{} / \inserttotalframenumber\hspace{1em}
+}
+
+
+\title[Analysis of Efficiency and Security of Existing \\ BFT Paxos-Based Algorithms]
+
+\date{}
+
+\author[FFFF\quad|\quad Фесенко А. В.]{
+    Illia Melnyk, Oleksandr Kurbatov, Oleg Fomenko, Volodymyr Dubinin and Yaroslav Panasenko
+}
+\institute{
+    Науковий керівник: Фесенко Андрій Вʼячеславович
+}
+
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Вступ і актуальнiсть}
+
+\vspace{0.5em}
+\textbf{Квантові обчислення} радикально змінюють уявлення про безпеку:
+\begin{itemize}
+  \item Класичні алгоритми $\Rightarrow$ вразливі до квантових атак 
+  \item Потрібен \textbf{перехiд} до постквантових протоколiв
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{Гiбриднi криптографiчнi схеми} — перехiдний варiант:
+\begin{itemize}
+  \item Об’єднують: класичну + PQ криптографію
+  \item Зберігають зворотну сумiснiсть і надiйнiсть
+\end{itemize}
+
+
+\vspace{0.5em}
+\begin{block}{Актуальне питання}
+  \centering
+  \textbf{Чи достатньо безпечним є механiзм об’єднання ключiв (CtKDF)?}
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}{Мета дослiдження}
+
+\begin{block}{Мета: }
+\textbf{довести, що \textbf{CtKDF} \textbf{не є IND-CPA стiйкою}, якщо функцiя створення ключа (KDF) є нестiйкою}
+\end{block}
+
+
+\vspace{1em}
+\textbf{Завдання дослiдження:}
+\begin{enumerate}
+  \item Побудувати \textit{формальну iгрову модель} для атаки типу IND-CPA.
+  \item Визначити \textit{перевагу зловмисника} при використаннi слабкої функції створення ключа.
+  \item Довести \textit{теорему нестiйкостi} гiбридної схеми CtKDF.
+\end{enumerate}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{CtKDF: суть механізму}
+
+\textbf{CtKDF} --- гібридний механізм об’єднання ключів за допомогою конкатенації:
+
+\vspace{0.5em}
+\begin{algorithm}[H]
+ \caption{CtKDF(context, label, l, psk, k, P, R)} 
+ \begin{algorithmic}
+  \State $secret \gets psk \| k_1 \| k_2 \| \dots \| k_n$
+  \State $context' \gets f(context, P, R)$
+  \State \textbf{return} $KDF(secret, label, context', l)$
+ \end{algorithmic}
+\end{algorithm}
+
+\vspace{0.5em}
+\begin{itemize}
+  \item $k_i$ --- секрети з різних схем
+  \item $psk$ --- попередньо відомий ключ (pre-shared key)
+  \item $f(\cdot)$ --- функція форматування контексту
+  \item $KDF$ --- функція створення ключа 
+\end{itemize}
+
+\end{frame}
+
+
+
+\begin{frame}{Уразливість CtKDF при слабкому KDF}
+
+\begin{block}{Ключове спостереження}
+  Навіть при стійких компонентах, слабка функція KDF \textbf{руйнує всю конструкцію}.
+\end{block}
+
+\vspace{0.5em}
+
+\textbf{Чому це відбувається?}
+\begin{itemize}
+  \item CtKDF не маскує структуру секрету, а лише \textit{перетворює} його через KDF
+  \item При слабкій функції створення ключа: вихід \textit{містить детерміновані ознаки вхідних даних}
+  \item Зловмисник може \textit{відновити частини $psk$, $k_i$, $len$ тощо}
+  \item Це відкриває шлях до \textit{атаки типу IND-CPA} через ігрову модель
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Ігрова модель: G\textsubscript{0} проти G\textsubscript{1}}
+
+\vspace{0.5em}
+\textbf{Мета:} змоделювати здатність зловмисника розрізнити \textit{реальний} та \textit{випадковий} вихід функції створення ключа
+
+\vspace{0.2em}
+
+\begin{columns}
+  \begin{column}{0.48\textwidth}
+    \scriptsize
+    \begin{block}{Гра $G_0^{\text{kdf-weak}}$}
+      \vbox to 3cm {
+        \begin{algorithmic}
+          \State $(inp, a) \gets \mathit{Input()}$
+          \If{$\perp(inp, a)$}
+            \State \Return $0$
+          \EndIf
+          \State $s \gets \mathit{Salt()}$
+          \State $(c, len) \gets \mathcal{A}(a, s)$
+          \State $out \gets (inp, s, c, len)$
+          \State \Return $\mathcal{A}(out)$
+        \end{algorithmic}
+        \vfill
+      }
+    \end{block}
+  \end{column}
+
+  \begin{column}{0.48\textwidth}
+    \scriptsize
+    \begin{block}{Гра $G_1^{\text{kdf-weak}}$}
+      \vbox to 3cm {
+        \begin{algorithmic}
+          \State $(inp, a) \gets \mathit{Input()}$
+          \If{$\perp(inp, a)$}
+            \State \Return $0$
+          \EndIf
+          \State $s \gets \mathit{Salt()}$
+          \State $(c, len) \gets \mathcal{A}(a, s)$
+          \State $out \gets \{0,1\}^{len}$ \Comment{випадковий рядок}
+          \State \Return $\mathcal{A}(out)$
+        \end{algorithmic}
+        \vfill
+      }
+    \end{block}
+  \end{column}
+\end{columns}
+
+
+\vspace{0.5em}
+\textbf{Ціль зловмисника:} вгадати, з якої гри походить $out$
+
+\end{frame}
+
+
+
+\begin{frame}{Перевага зловмисника}
+
+\vspace{0.5em}
+\textbf{Оцінка переваги зловмисника:}
+
+\[
+\text{Adv}_{\text{kdf-weak}}^{\text{KDF, Input, Salt}}(\mathcal{A}) =
+\left| \Pr[G_0^{\text{kdf-weak}}(\mathcal{A}) = 1] - \Pr[G_1^{\text{kdf-weak}}(\mathcal{A}) = 1] \right|
+\]
+
+\vspace{1em}
+\begin{itemize}
+  \item $G_0$: зловмисник отримує реальний вихід функції створення ключа
+  \item $G_1$: зловмисник отримує випадковий бітовий рядок довжини $len$
+  \item $\mathcal{A}$ — стратегія зловмисника, яка повертає біт $b'$
+\end{itemize}
+
+\vspace{0.5em}
+\begin{block}{Інтерпретація}
+  Якщо \textbf{Adv близьке до 1}, то зловмисник легко відрізняє вихід KDF від випадкового значення.\\
+  Це означає: \alert{функція є нестійкою, а схема CtKDF — уразливою}.
+\end{block}
+
+\end{frame}
+
+
+\begin{frame}{Стратегія зловмисника}
+
+\vspace{0.5em}
+\textbf{Ідея атаки:} проаналізувати вихід $out$ і визначити, чи відповідає він очікуваній структурі
+
+\vspace{0.5em}
+\begin{block}{Очікувана структура виходу}
+  \[
+    out \approx (inp', s', c', len')
+  \]
+\end{block}
+
+\vspace{0.5em}
+\begin{itemize}
+  \item Якщо вихід \textbf{містить зрозумілий формат} — зловмисник робить висновок: $G_0$
+  \item Якщо \textbf{не має структури / виглядає випадково} — припускає: $G_1$
+  \item Стратегія не потребує дешифрування або ключів, лише \textit{аналізу форми}
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{Результат:} \textit{перевага зловмисника наближається до 1}, якщо KDF слабка
+
+\end{frame}
+
+
+\begin{frame}{Модифікація CtKDF без KDF}
+
+\vspace{0.5em}
+\textbf{Упрощений варіант CtKDF:} KDF повністю виключено зі схеми
+
+\vspace{0.5em}
+\begin{block}{CtKDF(context, label, l, psk, k, P, R)}
+\begin{algorithmic}
+  \State $secret \gets psk \| k_1 \| k_2 \| \dots \| k_n$
+  \State $context' \gets f(context, P, R)$
+  \State \textbf{return} $secret$
+\end{algorithmic}
+\end{block}
+
+\vspace{0.5em}
+\begin{itemize}
+  \item Жодної хеш-функції, стискання або обфускації — \textbf{вся структура зберігається}
+  \item Навіть без KDF, зловмисник може \textit{відновити або розпізнати} частини $psk$, $k_i$, $len$
+  \item CtKDF у такому вигляді є \textit{демонстративно нестійкою}
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{Призначення:} використовується як допоміжна модель у побудові атак на повну схему
+
+\end{frame}
+
+
+
+\begin{frame}{Гра IND-CPA для CtKDF}
+
+\vspace{0.5em}
+\textbf{Мета:} довести, що зловмисник може виграти IND-CPA гру, якщо функція створення ключа є нестійкою
+
+\vspace{1em}
+\begin{block}{Суть гри IND-CPA}
+\begin{itemize}
+  \item Зловмисник бачить публічні ключі: $pk_1, pk_2, \dots, pk_n$
+  \item Отримує доступ до оракула інкапсуляції
+  \item Надсилає два повідомлення $m_0$, $m_1$
+  \item Отримує шифротекст для $m_b$, має вгадати біт $b$
+\end{itemize}
+\end{block}
+
+\vspace{0.5em}
+\textbf{При слабкому KDF:}
+\begin{itemize}
+  \item Вихід секрету зберігає структуру
+  \item Можна застосувати попередню \textit{структурну стратегію атаки}
+\end{itemize}
+
+\vspace{0.5em}
+Гра IND-CPA \textbf{зводиться до гри $G_0/G_1$}, отже:
+\[
+  Adv^{\text{ind-cpa}}_{\text{CtKDF}}(\mathcal{A}) \approx Adv^{\text{kdf-weak}}(\mathcal{A})
+\]
+
+\end{frame}
+
+
+\begin{frame}{Формалізація втрати IND-CPA стійкості при слабкій фцнкції створення ключа}
+
+\vspace{0.5em}
+
+\vspace{1em}
+\begin{block}{Теорема}
+Якщо функція створення ключа $KDF$ є нестійкою, то:
+\[
+  Adv^{\text{ind-cpa}}_{\text{CtKDF}}(\mathcal{A}) \geq 1 - (\varepsilon_1 + \varepsilon_2)
+\]
+де $\varepsilon_1$, $\varepsilon_2$ — похибки при моделюванні / редукції.
+\end{block}
+
+\vspace{1em}
+\begin{itemize}
+  \item Навіть при IND-CPA-стійких схемах, схема CtKDF може бути \textit{вразливою загалом}
+  \item CtKDF не успадковує безпеку своїх компонент без належної функції створення ключа
+\end{itemize}
+
+\vspace{0.5em}
+
+
+\end{frame}
+
+
+\begin{frame}{Висновки}
+
+\vspace{0.5em}
+\begin{itemize}
+  \item CtKDF \textbf{не є стійкою за визначенням}, якщо використовується слабка або передбачувана функція створення ключа
+  \item Навіть при ідеальних схемах \textit{структура секрету може витікати}
+  \item Побудована ігрова модель $G_0/G_1$ дозволяє \textbf{формально змоделювати атаку}
+  \item Ігрова перевага зловмисника \textit{може бути близькою до 1}, що свідчить про повну втрату IND-CPA
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}
+  \centering
+  \vspace{2em}
+  {\LARGE \textbf{Дякую за увагу!}} \\[2em]
+  {\textbf{Запитання?}} \\[2em]
+
+
+\end{frame}
+
+
+\end{document}

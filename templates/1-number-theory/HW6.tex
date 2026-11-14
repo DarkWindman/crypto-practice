@@ -1,0 +1,151 @@
+\documentclass{../../test-template}
+
+\begin{document}
+
+\begin{center}
+    \textbf{\Huge{Homework №6.} \\ \large Геш-функції та колізії. Протокол Рабіна. Криптоаналіз шифрів}
+\end{center}
+\section*{Теоретична зноска.}
+\begin{tcolorbox}[breakable, colback=gray!10!white,fonttitle=\bfseries,colframe=purple!80!black,title=Задача про 4 корені]
+Нехай задано рівняння $x^2\equiv a\textbf{ mod } n$, де $a$ -- квадратичний лишок за модулем $n$. Також дано чотири корені, $\pm x_1,\pm x_2$, причому $x_1\neq \pm x_2\textbf{ mod } n$, але $x_1^2=x_2^2=a\textbf{ mod } n$.
+
+Тоді отримаємо:
+\begin{align*}
+    x_1^2-x_2^2=0\textbf{ mod } n \Rightarrow (x_1-x_2)(x_1+x_2)=0\textbf{ mod } n \\
+    \Rightarrow \texttt{ або }\quad p|(x_1-x_2),\quad q|(x_1+x_2) \quad\texttt{ або навпаки.}
+\end{align*} 
+\end{tcolorbox}
+%\newpage
+\section*{Задачі}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q1}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+Кафе «Щасливчик» стоїть при дорозі, і його відвідувачі -- випадкові автотуристи. Господар кафе частує безплатним обідом кожного відвідувача, день народження якого (число і місяць) сходиться з його власним. За день до кафе заходить в середньому 10 відвідувачів. Яка ймовірність того, що господарю доведеться безплатно нагодувати хоча б одного з них? А якщо до кафе заходять 30 відвідувачів на день?
+    \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q2}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+       Розкласти на прості множники число $n = 2491$, якщо корені з деякого кв. лишку за mod n дорівнюють:
+       \begin{align*}
+           102; 1700; 2389; 791.
+       \end{align*}
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q3}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+       Розшифрувати повідомлення використовуючи криптосистему Рабіна: $C=(376, 0, 1)$, закритий ключ: $p=31, q=23$.
+       \\
+       Примітка: біт $b_1$ визначається з обчислення символу Якобі (0 -- якщо нелишок, та 1 в іншому випадку), а $b_2=M\mod 2$ з парності.
+        \end{minipage}
+\end{tcolorbox}
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q4}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        Нехай $p$ -- просте, $a\in Q_p$. Скільки квадратичних лишків та квадратичних нелишків буде міститись серед квадратних коренів $a$? Дати відповідь у випадку, коли $p=4k+1$.
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q5}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        Нехай $p>2$ -- просте число i $x_0$ -- розв’язок порівняння : \\\centering{$x^2\equiv a\text{ mod }p$.}
+        \begin{itemize}
+            \item Доведіть, що розв’язок порівняння $x^2\equiv a\text{ mod }p^2$ можна знайти у формі $x=x_0+pt$ та покажіть, як його обчислювати.
+            \item Знайдіть розв’язок $x$ рівняння $x^2\equiv19\text{ mod }25$.
+            \item  Сформулюйте алгоритм розв’язання квадратичних порівнянь виду $x^2\equiv a\text{ mod }p^m, m\in \mathbb{N}.$
+        \end{itemize}
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q6}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        Нехай $c=m^e\text{ mod } n$ шифротекст RSA.  Покажіть, що довільного числа $u\in \mathbb{Z}_n$, значення $c'=c\cdot u^e \text{ mod }n$ є коректним шифротекстом під повідомленням $m':=mu\text{ mod } n$.
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q7}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        Для функції RSA доведіть, що:
+        \begin{itemize}
+            \item вона зберігає символ Якобі;
+            \item при $e=\frac{\phi(n)}{2}+1$ вона перетворюється на тотожню.
+        \end{itemize}
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q8}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        Для криптосистеми RSA доведіть, що:
+        \begin{itemize}
+            \item якщо $n$ -- це просте число, то вона не є стійкою;
+            \item якщо $n=p\cdot q$, де $p=q$, то опис криптосистеми стає некоректним, а сама система стане нестійкою.
+        \end{itemize}
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q9}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        Обчисліть значення $x$:
+        \begin{itemize}
+            \item $x^2\equiv 13 \mod 53$;
+            \item $x^2\equiv 23 \mod 41$;
+            \item $x^2\equiv 2\mod 19$
+        \end{itemize}
+        \end{minipage}
+\end{tcolorbox}
+
+\end{document}

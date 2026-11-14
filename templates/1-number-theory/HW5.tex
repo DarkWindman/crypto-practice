@@ -1,0 +1,241 @@
+\documentclass{../../test-template}
+
+\begin{document}
+
+\begin{center}
+    \textbf{\Huge{Homework №5.} \\ \large Скінченні поля. Квадратичні лишки. Шифрування за RSA, Ель-Гамаля та Діффі-Геллмана.}
+\end{center}
+
+\section*{Теоретична зноска.}
+
+\begin{tcolorbox}[breakable, colback=gray!10!white,fonttitle=\bfseries,colframe=purple!30!black,title=Diffie-Hellman]
+Ця схема дозволяє побудову ключів з використанням
+тільки відкритих каналів, яка спирається на поняття односторонньої функції. 
+
+Нехай користувачі A і B повинні обмінятися секретним ключем, але не
+мають для цього закритого каналу. Схема Діффі-Хеллмана передбачає виконання наступних кроків:
+\begin{enumerate}
+    \item A і B обирають публічні параметри системи: велике просте число $p$ та $g$ примітивний елемент поля $F_p$. 
+    \item A: обирає випадкове число $1<k_A<p-1$, де $k_A$ -- секрет користувача А. Також обчислюється $y_A=g^{k_A}\text{ mod } p$, та відправляє $y_A$ користувачу B.
+    \item B: обирає випадкове число $1<k_B<p-1$, де $k_B$ -- секрет користувача B. Також обчислюється $y_B=g^{k_B}\text{ mod } p$, та відправляє $y_B$ користувачу A.
+    \item Користувач $A$: $s=y_B^{k_A}=g^{k_B\cdot k_A}$
+    \item Користувач $B$: $s=y_A^{k_B}=g^{k_A\cdot k_B}$
+\end{enumerate}
+\end{tcolorbox}
+
+\begin{tcolorbox}[breakable, colback=gray!10!white,fonttitle=\bfseries,colframe=purple!50!black,title=RSA]
+Протокол RSA дозволяє обмінюватися зашифрованими повідомленнями між користувачами, без встановлення попередньо спільних секретів, а використовувати лише публічні значення. 
+
+Нехай користувач A володіє системою RSA: задає велике складене число виду $n=p\cdot q, p\neq q$, де $p,q$ -- великі прості числа. Обираємо значення $e$, таким чином що $(e,\phi(n))=1$. Далі, А може обчислити свій приватний ключ $d$ : $d=e^{-1}\text{ mod } \phi(n).$ Після завершення формування системи, А поширює свій публічний ключ, що є кортежом $(e,n)$.
+
+Нехай користувач B хоче надіслати зашифроване повідомлення до A. Для цього він обчислює:
+\begin{align*}
+    C=M^e\text{ mod } n.
+\end{align*}
+Для розшифрування повідомлення B, A обчислює:
+\begin{align*}
+    M=C^d\text{ mod } n.
+\end{align*}
+\end{tcolorbox}
+
+\begin{tcolorbox}[breakable, colback=gray!10!white,fonttitle=\bfseries,colframe=purple!50!black,title=Ель-Гамаля]
+\textbf{Генерування ключів.} Аліса обирає $р$ -- просте число та елемент $g$ великого простого порядку $q$ за модулем $р$ (зокрема $g\in \mathbb{Z}_p^*$ може бути і генератором). Також Аліса обирає випадкове значення $x\in_R Z_q$ та обчислює число $y=g^x\text{ mod p}$. Число $х$ є секретним ключем Аліси, а трійка $(y,p,g)$ -- відкритим ключем Аліси.
+
+\textbf{Шифрування.} Боб бажає зашифрувати для Аліси повідомлення $m\in Z_p$. Для цього Боб генерує одноразовий секретний ключ $k\in_R Z_q$ та обчислює значення:
+\begin{align*}
+    c_1=g^k\text{ mod }p \\
+    c_2=m\cdot y^k\text{ mod }p
+\end{align*}
+Пара чисел $c=(c_1,c_2)$ є шифротекстом повідомлення $m$.
+
+\textbf{Розшифрування.} Одержавши шифротекст $c=(c_1,c_2)$, Аліса обчислює значення $m$: $m=c_2\cdot (c_1)^{-x}\text{ mod }p$.  
+\end{tcolorbox}
+
+
+\section*{Задачі}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q1}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+Дано алгоритм знаходження генератора мультиплiкативної групи скiнченного поля $F_q$:
+\begin{enumerate}
+    \item обрати випадковий елемент $g\in_{R}F_q^*$;
+        \item перевірити чи є цей елемент генератором;
+        \item якщо так, повернути $g$; інакше, повернутись на перший крок.
+\end{enumerate}
+Скiльки в середньому треба перевiрити елементiв за даним алгоритмом, якщо елементи обираються iз поверненням для $q=256$ у загальному випадку? 
+
+P.S. Використайте отримані формули, що ми вивели на практичному занятті.
+    \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q2}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        Використовується той самий алгоритм що і в Q1.
+        
+        Скiльки в середньому треба перевiрити елементiв за даним алгоритмом, якщо елементи обираються без повернення для  $q=8$ у загальному випадку?
+
+        P.S. Використайте отримані формули, що ми вивели на практичному занятті.
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q3}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        \textbf{Критерій Ойлера.} Доведіть, що 
+        \begin{align*}
+            \left(\frac{a}{p}\right)\equiv a^{\frac{p-1}{2}}
+        \end{align*}
+        \end{minipage}
+\end{tcolorbox}
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q4}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+       Для деякого цiлого числа $k$ доведiть, що $2$ є квадратичним
+нелишком за простим модулем $p$ при $p = 8k + 5$.
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q5}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        а) Cформуйте поліноміальний алгоритм обчислення символу Лежандра, Якобі. 
+        
+        б)Обчисліть:
+        \begin{align*}
+            \left(\frac{51}{43}\right),\left(\frac{616}{3315}\right)
+        \end{align*}
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q6}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+        a) Опишiть, що таке примiтивний елемент у скiнченному полi та вкажiть, скiльки їх iснуватиме у полях $\mathbb{F}_{29}, \mathbb{F}_{81}$.
+
+        b) Обчислити $5^{-1}\text{mod }\phi(91)$, де $\phi$ -- функцiя Ойлера.
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q7}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+         Побудуйте спільний секрет для абонентів $A$ та $B$ у схемі Діффі-Хеллмана, якщо 
+\par Для ФБ-31 --- $p = 11, g= 2, x_A=5, x_B=7$;
+\par Для ФБ-32 --- $p = 13, g =2, x_A=11, x_B=3$;
+\par Для ФБ-33 --- $p = 11, g= 6, x_A= 3, x_B=5$.
+\par Піднесення до степеня виконати за схемою Горнера.
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q8}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+         Задано параметри системи $p=29$, $g=5$, $k=15$, секретний ключ отримувача повідомлення $x=3$, визначити відкритий ключ отримувача повідомлення. Зашифрувати та розшифрувати повідомлення $m=9$ за цією схемою.
+         \par Піднесення до степеня виконати за схемою Горнера.
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q9}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+         Задано параметри системи $p=29$, $g=5$, $k=5$, секретний ключ отримувача повідомлення $x=4$, визначити відкритий ключ отримувача повідомлення. Сформуйте та перевірте ЦП для повідомлення $m=9$.
+         \par Піднесення до степеня виконати за схемою Горнера.
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q10}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+         Нехай $p$ --- просте, $a \in Q_p$. Скільки квадратичних лишків і нелишків буде міститися серед квадратних коренів $a$? Дати для випадків, коли 
+ \begin{itemize}
+     \item $p=4k+3$
+     \item $p=4k+1$
+ \end{itemize}
+        \end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q11}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+          Зламайте схему Ель-Гамаля, якщо 
+          \begin{itemize}
+            \item $k=\frac{q}{2}$
+            \item $k=+-\frac{q}{3}$
+        \end{itemize}
+        \end{minipage}
+\end{tcolorbox}
+
+
+\begin{tcolorbox}[lowerbox=invisible,colback=white]
+    \begin{minipage}{0.1\textwidth}
+        \raggedright
+        \vspace*{\fill}
+            \textbf{Q12}
+        \vspace*{\fill}
+        \end{minipage}
+        \begin{minipage}{0.75\textwidth}
+          Щоб не напружуватися зайвий раз, Боб для шифрування своїх повідомлень Алісі за схемою Ель-Гамаля завжди використовує одне і те ж саме значення $k$. 
+    \begin{itemize}
+    \item Покажіть, що Єва може зрозуміти це спостерігаючи за шифротекстами;
+    \item Покажіть, що знаючи лише одне повідомлення $m$ та відповідний йому шифротекст $c$, Єва може розшифрувати будь-яке повідомлення.
+    \end{itemize}
+        \end{minipage}
+\end{tcolorbox}
+\end{document}
